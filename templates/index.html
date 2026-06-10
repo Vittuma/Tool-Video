@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Translator AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">Video Translator AI</h1>
+        
+        <form id="uploadForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Chọn Video</label>
+                <input type="file" name="video" accept="video/*" required
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Ngôn ngữ đích</label>
+                <select name="lang" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="en">Tiếng Anh</option>
+                    <option value="ja">Tiếng Nhật</option>
+                    <option value="ko">Tiếng Hàn</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Giọng đọc (TTS)</label>
+                <select name="voice" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    <option value="vi-VN-HoaiMyNeural">Hoài My (Nữ)</option>
+                    <option value="vi-VN-NamMinhNeural">Nam Minh (Nam)</option>
+                </select>
+            </div>
+
+            <button type="submit" id="submitBtn"
+                class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 transition duration-200">
+                Bắt đầu dịch
+            </button>
+        </form>
+
+        <div id="statusContainer" class="mt-6 hidden">
+            <h2 class="text-lg font-semibold mb-2">Trạng thái:</h2>
+            <p id="statusText" class="text-blue-500 italic">Đang tải...</p>
+            <div id="downloadContainer" class="mt-4 hidden">
+                <a id="downloadLink" href="#" 
+                   class="block text-center bg-green-500 text-white font-bold py-2 px-4 rounded hover:bg-green-600">
+                    Tải Video Đã Dịch
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const statusContainer = document.getElementById('statusContainer');
+        const statusText = document.getElementById('statusText');
+        const downloadContainer = document.getElementById('downloadContainer');
+        const downloadLink = document.getElementById('downloadLink');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Đang tải video lên...";
+            statusContainer.classList.remove('hidden');
+            statusText.innerText = "Đang upload...";
+
+            const response = await fetch('/translate', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            const taskId = data.task_id;
+
+            checkStatus(taskId);
+        };
+
+        async function checkStatus(taskId) {
+            const response = await fetch(`/status/${taskId}`);
+            const data = await response.json();
+            
+            statusText.innerText = data.status;
+
+            if (data.status === "Hoàn thành") {
+                downloadContainer.classList.remove('hidden');
+                downloadLink.href = data.download_url;
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Bắt đầu dịch";
+            } else if (data.status.startsWith("Lỗi")) {
+                statusText.classList.remove('text-blue-500');
+                statusText.classList.add('text-red-500');
+                submitBtn.disabled = false;
+            } else {
+                setTimeout(() => checkStatus(taskId), 5000);
+            }
+        }
+    </script>
+</body>
+</html>

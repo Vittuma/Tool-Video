@@ -8,5 +8,7 @@ temp_audio.wav
 seg_*.mp3
 .DS_Store
 .env
-# Whisper models are usually downloaded to a cache dir, but just in case:
+uploads/
+outputs/
+# Whisper models
 models/

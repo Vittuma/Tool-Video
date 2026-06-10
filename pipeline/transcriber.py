@@ -1,9 +1,10 @@
 import whisper
 import os
 
-def transcribe(audio_path: str, model_size="base") -> dict:
+def transcribe(audio_path: str, model_size="tiny") -> dict:
     """
     Transcribe file WAV → text kèm timestamps sử dụng OpenAI Whisper (Local).
+    Sử dụng model 'tiny' để tối ưu RAM cho Railway.
     """
     print(f"[transcriber] Đang load model Whisper ({model_size})...")
     model = whisper.load_model(model_size)

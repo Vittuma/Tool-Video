@@ -3,102 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Translator AI</title>
+    <title>Video Dubbing Professional AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-2 text-center text-blue-600">Video Translator AI</h1>
-        <p class="text-xs text-center text-gray-400 mb-6">Phiên bản v1.0.2 (Sửa lỗi Loop)</p>
-        
-        <form id="uploadForm" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Chọn Video</label>
-                <input type="file" name="video" accept="video/*" required
-                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+<body class="bg-slate-50 min-h-screen p-4 md:p-8">
+    <div class="max-w-5xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-slate-800">Video Dubbing Pipeline</h1>
+            <p class="text-slate-500 mt-2">Tách audio → Transcribe → Chỉnh text → TTS → Merge</p>
+        </header>
+
+        <!-- Step 1: Upload -->
+        <div id="step1" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-xl font-bold mb-4">Bước 1: Tải video lên</h2>
+            <form id="uploadForm" class="space-y-4">
+                <div class="border-2 border-dashed border-slate-300 rounded-xl p-10 text-center hover:border-blue-400 transition-colors cursor-pointer" onclick="document.getElementById('videoInput').click()">
+                    <input type="file" id="videoInput" name="video" accept="video/*" class="hidden" onchange="updateFileName(this)">
+                    <div id="uploadPlaceholder">
+                        <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <p class="mt-2 text-sm text-slate-600">Kéo thả hoặc click để chọn file MP4</p>
+                    </div>
+                    <p id="fileName" class="text-blue-600 font-medium hidden"></p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Dịch sang</label>
+                        <select name="lang" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="vi">Tiếng Việt</option>
+                            <option value="en">Tiếng Anh</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" id="uploadBtn" class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition shadow-md disabled:bg-slate-400">
+                            Bắt đầu phân tích
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Processing Status -->
+        <div id="statusBox" class="mt-6 bg-blue-50 border border-blue-100 p-4 rounded-xl hidden">
+            <div class="flex items-center space-x-3">
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <p id="statusText" class="text-blue-700 font-medium">Đang xử lý...</p>
+            </div>
+        </div>
+
+        <!-- Step 2: Edit Segments -->
+        <div id="step2" class="mt-10 bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Bước 2: Chỉnh sửa nội dung dịch</h2>
+                <div class="flex space-x-4">
+                    <select id="voiceSelect" class="border border-slate-300 rounded-lg p-2 text-sm outline-none">
+                        <option value="vi-VN-HoaiMyNeural">Giọng Nữ (Hoài My)</option>
+                        <option value="vi-VN-NamMinhNeural">Giọng Nam (Nam Minh)</option>
+                    </select>
+                    <button id="dubBtn" class="bg-green-600 text-white font-bold px-6 py-2 rounded-lg hover:bg-green-700 shadow-md">
+                        Lồng tiếng & Ghép Video
+                    </button>
+                </div>
             </div>
             
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Ngôn ngữ đích</label>
-                <select name="lang" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-                    <option value="vi">Tiếng Việt</option>
-                    <option value="en">Tiếng Anh</option>
-                    <option value="ja">Tiếng Nhật</option>
-                    <option value="ko">Tiếng Hàn</option>
-                </select>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 uppercase text-xs">
+                            <th class="p-3 rounded-tl-lg">Thời gian</th>
+                            <th class="p-3">Lời gốc</th>
+                            <th class="p-3 rounded-tr-lg">Lời dịch (Có thể sửa)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="segmentsBody" class="text-sm divide-y divide-slate-100">
+                        <!-- Segments will be injected here -->
+                    </tbody>
+                </table>
             </div>
+        </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Giọng đọc (TTS)</label>
-                <select name="voice" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-                    <option value="vi-VN-HoaiMyNeural">Hoài My (Nữ)</option>
-                    <option value="vi-VN-NamMinhNeural">Nam Minh (Nam)</option>
-                </select>
+        <!-- Step 3: Success & Download -->
+        <div id="step3" class="mt-10 bg-white p-10 rounded-2xl shadow-lg border border-green-100 text-center hidden">
+            <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
             </div>
-
-            <button type="submit" id="submitBtn"
-                class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 transition duration-200">
-                Bắt đầu dịch
-            </button>
-        </form>
-
-        <div id="statusContainer" class="mt-6 hidden">
-            <h2 class="text-lg font-semibold mb-2">Trạng thái:</h2>
-            <p id="statusText" class="text-blue-500 italic">Đang tải...</p>
-            <div id="downloadContainer" class="mt-4 hidden">
-                <a id="downloadLink" href="#" 
-                   class="block text-center bg-green-500 text-white font-bold py-2 px-4 rounded hover:bg-green-600">
-                    Tải Video Đã Dịch
-                </a>
-            </div>
+            <h2 class="text-2xl font-bold text-slate-800">Dịch video hoàn tất!</h2>
+            <p class="text-slate-500 mb-6">Bạn có thể tải kết quả về ngay bây giờ.</p>
+            <a id="finalDownloadLink" href="#" class="inline-block bg-blue-600 text-white font-bold px-10 py-3 rounded-xl hover:bg-blue-700 transition shadow-lg">
+                Tải Video Kết Quả (.mp4)
+            </a>
+            <button onclick="location.reload()" class="block mx-auto mt-4 text-slate-400 hover:text-slate-600 underline">Làm video mới</button>
         </div>
     </div>
 
     <script>
-        const form = document.getElementById('uploadForm');
-        const statusContainer = document.getElementById('statusContainer');
-        const statusText = document.getElementById('statusText');
-        const downloadContainer = document.getElementById('downloadContainer');
-        const downloadLink = document.getElementById('downloadLink');
-        const submitBtn = document.getElementById('submitBtn');
+        let currentTaskId = null;
+        let currentSegments = [];
 
-        form.onsubmit = async (e) => {
+        function updateFileName(input) {
+            const fileName = document.getElementById('fileName');
+            const placeholder = document.getElementById('uploadPlaceholder');
+            if (input.files.length > 0) {
+                fileName.innerText = "Đã chọn: " + input.files[0].name;
+                fileName.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            }
+        }
+
+        const uploadForm = document.getElementById('uploadForm');
+        uploadForm.onsubmit = async (e) => {
             e.preventDefault();
-            const formData = new FormData(form);
+            const formData = new FormData(uploadForm);
             
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Đang tải video lên...";
-            statusContainer.classList.remove('hidden');
-            statusText.innerText = "Đang upload...";
-
-            const response = await fetch('/translate', {
-                method: 'POST',
-                body: formData
-            });
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('statusBox').classList.remove('hidden');
+            
+            const response = await fetch('/upload', { method: 'POST', body: formData });
             const data = await response.json();
-            const taskId = data.task_id;
-
-            checkStatus(taskId);
+            currentTaskId = data.task_id;
+            
+            pollStatus();
         };
 
-        async function checkStatus(taskId) {
-            const response = await fetch(`/status/${taskId}`);
+        async function pollStatus() {
+            const response = await fetch(`/status/${currentTaskId}`);
             const data = await response.json();
             
-            statusText.innerText = data.status;
+            document.getElementById('statusText').innerText = data.status;
 
-            if (data.status === "Hoàn thành") {
-                downloadContainer.classList.remove('hidden');
-                downloadLink.href = data.download_url;
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Bắt đầu dịch";
-            } else if (data.status.startsWith("Lỗi")) {
-                statusText.classList.remove('text-blue-500');
-                statusText.classList.add('text-red-500');
-                submitBtn.disabled = false;
+            if (data.step === 2) {
+                // Done step 1, show editor
+                showEditor(data.segments);
+            } else if (data.step === 4) {
+                // Done everything
+                showDownload(data.download_url);
+            } else if (data.step === 0) {
+                // Error
+                alert(data.status);
+                location.reload();
             } else {
-                setTimeout(() => checkStatus(taskId), 5000);
+                setTimeout(pollStatus, 3000);
             }
+        }
+
+        function showEditor(segments) {
+            currentSegments = segments;
+            document.getElementById('statusBox').classList.add('hidden');
+            document.getElementById('step1').classList.add('opacity-50', 'pointer-events-none');
+            document.getElementById('step2').classList.remove('hidden');
+            
+            const body = document.getElementById('segmentsBody');
+            body.innerHTML = '';
+            
+            segments.forEach((seg, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-400 font-mono text-xs whitespace-nowrap">
+                        ${seg.start.toFixed(2)}s - ${seg.end.toFixed(2)}s
+                    </td>
+                    <td class="p-3 text-slate-600 italic">${seg.text}</td>
+                    <td class="p-3">
+                        <textarea class="w-full border border-slate-200 rounded p-2 text-sm focus:border-blue-400 outline-none transition-colors" 
+                            oninput="updateSegmentText(${index}, this.value)">${seg.translated_text}</textarea>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        window.updateSegmentText = (index, val) => {
+            currentSegments[index].translated_text = val;
+        };
+
+        document.getElementById('dubBtn').onclick = async () => {
+            const voice = document.getElementById('voiceSelect').value;
+            const lang = document.querySelector('[name="lang"]').value;
+            
+            document.getElementById('dubBtn').disabled = true;
+            document.getElementById('statusBox').classList.remove('hidden');
+            document.getElementById('step2').classList.add('opacity-50', 'pointer-events-none');
+
+            await fetch('/dub', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    task_id: currentTaskId,
+                    segments: currentSegments,
+                    voice: voice,
+                    lang: lang
+                })
+            });
+
+            pollStatus();
+        };
+
+        function showDownload(url) {
+            document.getElementById('statusBox').classList.add('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.remove('hidden');
+            document.getElementById('finalDownloadLink').href = url;
         }
     </script>
 </body>

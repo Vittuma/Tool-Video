@@ -30,7 +30,7 @@ async def run_translation(task_id: str, input_path: str, output_path: str, lang:
         tasks[task_id] = "Đang xử lý (Transcription & Translation)..."
         # Use a smaller model for web demo if needed, here we use 'base'
         translator = VideoTranslator(model_size="base")
-        translator.process_video(input_path, output_path, lang, voice)
+        await translator.process_video(input_path, output_path, lang, voice)
         tasks[task_id] = "Hoàn thành"
     except Exception as e:
         tasks[task_id] = f"Lỗi: {str(e)}"

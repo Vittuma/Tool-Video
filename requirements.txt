@@ -2,7 +2,7 @@ fastapi
 uvicorn
 python-multipart
 jinja2
-moviepy
+ffmpeg-python
 openai-whisper
 googletrans==4.0.0-rc1
 edge-tts

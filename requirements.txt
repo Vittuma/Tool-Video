@@ -10,3 +10,4 @@ pillow
 tqdm
 numpy
 aiofiles
+nest_asyncio

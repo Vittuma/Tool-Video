@@ -7,6 +7,9 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from main import VideoTranslator
+import nest_asyncio
+
+nest_asyncio.apply()
 
 app = FastAPI()
 

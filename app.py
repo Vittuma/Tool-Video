@@ -76,7 +76,7 @@ async def run_step1_transcribe(task_id: str, input_path: str, target_lang: str):
         
         # Save segments for editing
         with open(os.path.join(TASKS_DIR, f"{task_id}.json"), "w", encoding="utf-8") as f:
-            json.dump({"segments": segments, "input_path": input_path}, f, ensure_all_ascii=False)
+            json.dump({"segments": segments, "input_path": input_path}, f, ensure_ascii=False)
             
         tasks_status[task_id] = {"status": "Sẵn sàng để chỉnh sửa", "step": 2, "segments": segments}
         
